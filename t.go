@@ -1,11 +1,23 @@
 package main
 
+//https://play.golang.org/p/nC3LpZYAVpR
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"net"
+	"strings"
 )
+
+//MockClient mocks a client
+type MockClient struct {
+	conn net.Conn
+}
+
+//NewMockClient create a MockClient
+func NewMockClient(conn net.Conn) *MockClient {
+	mc := new(MockClient)
+	mc.conn = conn
+	return mc
+}
 
 //MakeFakeConn fakes a net.Conn by using a pipe
 func MakeFakeConn() (net.Conn, net.Conn) {
@@ -13,28 +25,49 @@ func MakeFakeConn() (net.Conn, net.Conn) {
 	return server, client
 }
 
+//ReadAll builds a string from the pipe output.
+//the read needs to loop in case in missed anything
+//in the pipe that stalls the read
+func ReadAll(c net.Conn) (string, error) {
+	var str strings.Builder
+	var readcount int = 0
+	var buf = make([]byte, 100)
+	for {
+		n, err := c.Read(buf)
+		str.WriteString(string(buf))
+		if err != nil {
+			return str.String(), err
+		}
+		if err == nil {
+			return str.String(), err
+		}
+		readcount += n
+	}
+}
+
 func main() {
-	//create fake sockets from net.Pipe
 	talk2server, talk2client := MakeFakeConn()
 
 	//For demo simplicity we handle a single client's messages only.
-	go client(talk2server)
 	go handler(talk2client)
+	client(talk2server)
+
 	for { //loop forever
 	}
 }
 
 func handler(c net.Conn) {
-	message, _ := bufio.NewReader(c).ReadString('\n')
-	fmt.Println("message from client:", message)
 	c.Write([]byte("Hi client! Server here...")) //write back to client
-	c.Close()
+	defer c.Close()
+	line, _ := ReadAll(c)
+	fmt.Println("client said to server:", line)
 }
 
 func client(c net.Conn) {
-	c.Write([]byte("hello Server.\r\n"))
-	lr := io.LimitReader(c, 512) //DDoS protection
-	buffread := bufio.NewReader(lr)
-	lines, _, _ := buffread.ReadLine()
-	fmt.Println("received from server: ", string(lines))
+	line, err := ReadAll(c)
+	if err != nil {
+		fmt.Println("err:", err)
+	}
+	fmt.Println("client received from server: ", line)
+	c.Write([]byte("hello Server this is my reply."))
 }
