@@ -9,6 +9,6 @@ run like this:
 davids-MacBook-Pro:playground david$ go run t.go 
 client received from server:  Hello
 client said to server: Hello
-same Hello
+same: Hello
 
 ```
