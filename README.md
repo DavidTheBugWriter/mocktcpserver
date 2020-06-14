@@ -6,7 +6,9 @@ I found it a bit difficult to find a working example of how to do this. I google
 
 run like this:
 ```
-> davids-MacBook-Pro:playground david$ go run t.go
-> client received from server:  Hi client! Server here...
-> client said to server: hello Server this is my reply.
+davids-MacBook-Pro:playground david$ go run t.go 
+client received from server:  Hello
+client said to server: Hello
+same Hello
+
 ```
