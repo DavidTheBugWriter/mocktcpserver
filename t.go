@@ -1,11 +1,14 @@
 package main
 
 //https://play.golang.org/p/nC3LpZYAVpR
+//https://play.golang.org/p/Zhe3ipWDXsd
 import (
+	"bytes"
 	"fmt"
 	"net"
-	"strings"
 )
+
+var greet = "Hello"
 
 //MockClient mocks a client
 type MockClient struct {
@@ -29,19 +32,16 @@ func MakeFakeConn() (net.Conn, net.Conn) {
 //the read needs to loop in case in missed anything
 //in the pipe that stalls the read
 func ReadAll(c net.Conn) (string, error) {
-	var str strings.Builder
-	var readcount int = 0
-	var buf = make([]byte, 100)
+	var buf = make([]byte, len(greet))
 	for {
-		n, err := c.Read(buf)
-		str.WriteString(string(buf))
+		_, err := c.Read(buf)
+		newstr := bytes.Trim(buf, "\x00")
 		if err != nil {
-			return str.String(), err
+			return string(newstr), err
 		}
 		if err == nil {
-			return str.String(), err
+			return string(newstr), err
 		}
-		readcount += n
 	}
 }
 
@@ -57,10 +57,16 @@ func main() {
 }
 
 func handler(c net.Conn) {
-	c.Write([]byte("Hi client! Server here...")) //write back to client
+
+	c.Write([]byte(greet)) //write back to client
 	defer c.Close()
 	line, _ := ReadAll(c)
 	fmt.Println("client said to server:", line)
+	if line == greet {
+		fmt.Println("same:", line)
+	} else {
+		fmt.Println("not same:", line)
+	}
 }
 
 func client(c net.Conn) {
@@ -69,5 +75,5 @@ func client(c net.Conn) {
 		fmt.Println("err:", err)
 	}
 	fmt.Println("client received from server: ", line)
-	c.Write([]byte("hello Server this is my reply."))
+	c.Write([]byte(greet))
 }
